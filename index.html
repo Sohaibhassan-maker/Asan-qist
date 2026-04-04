@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Installment Management System</title>
+
+<style>
+body{
+    font-family: Arial;
+    background:#f4f4f4;
+    padding:20px;
+}
+h1{text-align:center;}
+.container{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 0 10px #ccc;
+}
+input, button{
+    padding:8px;
+    margin:5px;
+}
+table{
+    width:100%;
+    border-collapse: collapse;
+    margin-top:20px;
+}
+th, td{
+    border:1px solid #ddd;
+    padding:8px;
+    text-align:center;
+}
+th{
+    background:#333;
+    color:white;
+}
+button{
+    border:none;
+    cursor:pointer;
+    color:white;
+}
+.addBtn{background:#28a745;}
+.payBtn{background:#007bff;}
+.pdfBtn{background:#6f42c1;}
+.deleteBtn{background:#dc3545;}
+button:hover{opacity:0.9;}
+</style>
+
+<!-- Load libraries FIRST -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+</head>
+
+<body>
+
+<h1>Installment Management System</h1>
+
+<div class="container">
+
+<h3>Add Client</h3>
+
+<input type="text" id="name" placeholder="Client Name">
+<input type="text" id="phone" placeholder="Phone Number">
+<input type="number" id="total" placeholder="Product Price">
+<input type="number" id="months" placeholder="Number of Installments">
+
+<button class="addBtn" onclick="addClient()">Add Client</button>
+
+<table id="clientTable">
+<thead>
+<tr>
+<th>Name</th>
+<th>Phone</th>
+<th>Original</th>
+<th>+25%</th>
+<th>Final</th>
+<th>Months</th>
+<th>Monthly</th>
+<th>Paid</th>
+<th>Remaining</th>
+<th>Pay</th>
+<th>PDF</th>
+<th>Delete</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+</div>
+
+<script>
+
+let clients = [];
+
+function addClient(){
+
+    let name = document.getElementById("name").value.trim();
+    let phone = document.getElementById("phone").value.trim();
+    let total = parseFloat(document.getElementById("total").value);
+    let months = parseInt(document.getElementById("months").value);
+
+    if(name === "" || phone === "" || isNaN(total) || isNaN(months) || months <= 0){
+        alert("Please enter valid information");
+        return;
+    }
+
+    let extra25 = total * 0.25;
+    let finalAmount = total + extra25;
+    let monthly = finalAmount / months;
+
+    clients.push({
+        name,
+        phone,
+        total,
+        extra25,
+        finalAmount,
+        months,
+        monthly,
+        paid:0,
+        installments:[]
+    });
+
+    displayClients();
+
+    document.getElementById("name").value="";
+    document.getElementById("phone").value="";
+    document.getElementById("total").value="";
+    document.getElementById("months").value="";
+}
+
+function addPayment(index){
+    let amount = parseFloat(prompt("Enter payment amount:"));
+    if(!isNaN(amount) && amount > 0){
+        clients[index].paid += amount;
+        clients[index].installments.push({
+            date:new Date().toLocaleDateString(),
+            amount
+        });
+        displayClients();
+    }
+}
+
+function deleteClient(index){
+    if(confirm("Delete this client?")){
+        clients.splice(index,1);
+        displayClients();
+    }
+}
+
+function generatePDF(index){
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    let c = clients[index];
+
+    doc.setFontSize(16);
+    doc.text("Installment Report", 70, 15);
+
+    doc.setFontSize(12);
+    doc.text("Client: "+c.name,20,30);
+    doc.text("Phone: "+c.phone,20,38);
+
+    doc.autoTable({
+        startY:50,
+        head:[['Original','25%','Final','Months','Monthly','Paid','Remaining']],
+        body:[[
+            c.total,
+            c.extra25,
+            c.finalAmount,
+            c.months,
+            c.monthly.toFixed(2),
+            c.paid,
+            (c.finalAmount-c.paid).toFixed(2)
+        ]]
+    });
+
+    doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 10,
+        head:[['Date','Amount']],
+        body: c.installments.map(i => [i.date, i.amount])
+    });
+
+    doc.save(c.name+"_Installment.pdf");
+}
+
+function displayClients(){
+
+    let tbody = document.querySelector("#clientTable tbody");
+    tbody.innerHTML="";
+
+    clients.forEach((c,index)=>{
+
+        tbody.innerHTML += `
+        <tr>
+        <td>${c.name}</td>
+        <td>${c.phone}</td>
+        <td>${c.total}</td>
+        <td>${c.extra25}</td>
+        <td>${c.finalAmount}</td>
+        <td>${c.months}</td>
+        <td>${c.monthly.toFixed(2)}</td>
+        <td>${c.paid}</td>
+        <td>${(c.finalAmount-c.paid).toFixed(2)}</td>
+        <td><button class="payBtn" onclick="addPayment(${index})">Pay</button></td>
+        <td><button class="pdfBtn" onclick="generatePDF(${index})">PDF</button></td>
+        <td><button class="deleteBtn" onclick="deleteClient(${index})">Delete</button></td>
+        </tr>
+        `;
+    });
+}
+
+</script>
+
+</body>
+</html>
