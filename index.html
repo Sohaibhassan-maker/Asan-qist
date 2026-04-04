@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Installment Management System</title>
+<title>ASAN QIST MANAGEMENT SYSTEM</title>
 
 <style>
 body{
@@ -54,7 +54,7 @@ button:hover{opacity:0.9;}
 
 <body>
 
-<h1>Installment Management System</h1>
+<h1>ASAN QIST MANAGEMENT SYSTEM</h1>
 
 <div class="container">
 
@@ -155,7 +155,7 @@ function generatePDF(index){
     let c = clients[index];
 
     doc.setFontSize(16);
-    doc.text("Installment Report", 70, 15);
+    doc.text("ASAN QIST MANAGEMENT SYSTEM", 45, 15);
 
     doc.setFontSize(12);
     doc.text("Client: "+c.name,20,30);
@@ -181,7 +181,7 @@ function generatePDF(index){
         body: c.installments.map(i => [i.date, i.amount])
     });
 
-    doc.save(c.name+"_Installment.pdf");
+    doc.save(c.name+"_ASAN_QIST.pdf");
 }
 
 function displayClients(){
