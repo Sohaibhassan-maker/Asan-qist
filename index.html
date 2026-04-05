@@ -1,107 +1,134 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>ASAN QIST MANAGEMENT SYSTEM</title>
+    <title>ASSAN QIST MANAGEMENT SYSTEM</title>
 
-<style>
-body{
-    font-family: Arial;
-    background:#f4f4f4;
-    padding:20px;
-}
-h1{text-align:center;}
-.container{
-    background:white;
-    padding:20px;
-    border-radius:10px;
-    box-shadow:0 0 10px #ccc;
-}
-input, button{
-    padding:8px;
-    margin:5px;
-}
-table{
-    width:100%;
-    border-collapse: collapse;
-    margin-top:20px;
-}
-th, td{
-    border:1px solid #ddd;
-    padding:8px;
-    text-align:center;
-}
-th{
-    background:#333;
-    color:white;
-}
-button{
-    border:none;
-    cursor:pointer;
-    color:white;
-}
-.addBtn{background:#28a745;}
-.payBtn{background:#007bff;}
-.pdfBtn{background:#6f42c1;}
-.deleteBtn{background:#dc3545;}
-button:hover{opacity:0.9;}
-</style>
+    <style>
+        body { font-family: Arial; background:#f4f4f4; padding:20px; }
+        h1 { text-align:center; }
+        .container {
+            background:white; padding:20px; border-radius:10px;
+            box-shadow:0 0 10px #ccc;
+        }
+        input, button { padding:8px; margin:5px; width:220px; }
 
-<!-- Load libraries FIRST -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+        button { border:none; cursor:pointer; color:white; padding:6px 10px; }
+        .addBtn{background:#28a745;}
+        .payBtn{background:#007bff;}
+        .pdfBtn{background:#6f42c1;}
+        .deleteBtn{background:#dc3545;}
+        button:hover{opacity:0.9;}
 
+        table { width:100%; margin-top:20px; }
+
+        .invoiceBox{
+            background:white;
+            border:1px solid #ccc;
+            padding:20px;
+            margin-bottom:20px;
+            border-radius:8px;
+        }
+
+        .invoiceTitle{
+            text-align:center;
+            background:#333;
+            color:white;
+            padding:8px;
+            margin:-20px -20px 15px -20px;
+        }
+
+        .invoiceRow{
+            margin:5px 0;
+        }
+
+        hr{
+            margin:10px 0;
+        }
+
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
 </head>
 
 <body>
 
-<h1>ASAN QIST MANAGEMENT SYSTEM</h1>
+<h1>ASAAN QIST MANAGEMENT SYSTEM</h1>
 
 <div class="container">
+    <h3>Add Client</h3>
 
-<h3>Add Client</h3>
+    <input type="text" id="name" placeholder="Client Name">
+    <input type="text" id="cnic" placeholder="CNIC">
+    <input type="text" id="phone" placeholder="Phone Number">
+    <input type="text" id="guarantor" placeholder="Guarantor Name">
+    <input type="text" id="address" placeholder="Address"><br>
 
-<input type="text" id="name" placeholder="Client Name">
-<input type="text" id="phone" placeholder="Phone Number">
-<input type="number" id="total" placeholder="Product Price">
-<input type="number" id="months" placeholder="Number of Installments">
+    <input type="number" id="total" placeholder="Product Price">
+    <input type="number" id="months" placeholder="Number of Installments">
 
-<button class="addBtn" onclick="addClient()">Add Client</button>
+    <button class="addBtn" onclick="addClient()">Add Client</button>
 
-<table id="clientTable">
-<thead>
-<tr>
-<th>Name</th>
-<th>Phone</th>
-<th>Original</th>
-<th>+25%</th>
-<th>Final</th>
-<th>Months</th>
-<th>Monthly</th>
-<th>Paid</th>
-<th>Remaining</th>
-<th>Pay</th>
-<th>PDF</th>
-<th>Delete</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
-
+    <div id="clientTable"></div>
 </div>
 
-<script>
+<!-- Firebase SDK -->
+<script type="module">
+
+// Import Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { 
+    getFirestore, 
+    collection, 
+    addDoc, 
+    getDocs, 
+    deleteDoc, 
+    doc, 
+    updateDoc 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// 🔹 PASTE YOUR FIREBASE CONFIG HERE
+ const firebaseConfig = {
+    apiKey: "AIzaSyDYhKRYtdLRfB0Dhn1uXd8l2EoJJzWtmvY",
+    authDomain: "asan-qist-system.firebaseapp.com",
+    projectId: "asan-qist-system",
+    storageBucket: "asan-qist-system.firebasestorage.app",
+    messagingSenderId: "123694106584",
+    appId: "1:123694106584:web:53a472ed4f076293b2d4ad"
+  };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 let clients = [];
 
-function addClient(){
+// 🔥 LOAD DATA FROM FIRESTORE
+async function loadClients(){
+    const querySnapshot = await getDocs(collection(db, "clients"));
+    clients = [];
+    querySnapshot.forEach((docSnap) => {
+        clients.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    displayClients();
+}
+
+loadClients();
+
+
+// 🔥 ADD CLIENT TO FIRESTORE
+window.addClient = async function(){
 
     let name = document.getElementById("name").value.trim();
+    let cnic = document.getElementById("cnic").value.trim();
     let phone = document.getElementById("phone").value.trim();
+    let guarantor = document.getElementById("guarantor").value.trim();
+    let address = document.getElementById("address").value.trim();
     let total = parseFloat(document.getElementById("total").value);
     let months = parseInt(document.getElementById("months").value);
 
-    if(name === "" || phone === "" || isNaN(total) || isNaN(months) || months <= 0){
-        alert("Please enter valid information");
+    if(name==="" || cnic==="" || phone==="" || guarantor==="" || address==="" || isNaN(total) || isNaN(months)){
+        alert("Fill all fields correctly");
         return;
     }
 
@@ -109,103 +136,81 @@ function addClient(){
     let finalAmount = total + extra25;
     let monthly = finalAmount / months;
 
-    clients.push({
-        name,
-        phone,
-        total,
-        extra25,
-        finalAmount,
-        months,
-        monthly,
-        paid:0,
-        installments:[]
+    await addDoc(collection(db, "clients"), {
+        name, cnic, phone, guarantor, address,
+        total, extra25, finalAmount, months, monthly,
+        paid: 0,
+        installments: []
     });
 
-    displayClients();
-
-    document.getElementById("name").value="";
-    document.getElementById("phone").value="";
-    document.getElementById("total").value="";
-    document.getElementById("months").value="";
+    loadClients();
 }
 
-function addPayment(index){
+
+// ❌ DELETE
+window.deleteClient = async function(index){
+    let client = clients[index];
+    await deleteDoc(doc(db, "clients", client.id));
+    loadClients();
+}
+
+
+// 💰 ADD PAYMENT
+window.addPayment = async function(index){
+
     let amount = parseFloat(prompt("Enter payment amount:"));
-    if(!isNaN(amount) && amount > 0){
-        clients[index].paid += amount;
-        clients[index].installments.push({
-            date:new Date().toLocaleDateString(),
-            amount
-        });
-        displayClients();
-    }
-}
+    if(isNaN(amount) || amount<=0) return;
 
-function deleteClient(index){
-    if(confirm("Delete this client?")){
-        clients.splice(index,1);
-        displayClients();
-    }
-}
+    let client = clients[index];
 
-function generatePDF(index){
+    let newPaid = (client.paid || 0) + amount;
+    let newInstallments = client.installments || [];
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    let c = clients[index];
-
-    doc.setFontSize(16);
-    doc.text("ASAN QIST MANAGEMENT SYSTEM", 45, 15);
-
-    doc.setFontSize(12);
-    doc.text("Client: "+c.name,20,30);
-    doc.text("Phone: "+c.phone,20,38);
-
-    doc.autoTable({
-        startY:50,
-        head:[['Original','25%','Final','Months','Monthly','Paid','Remaining']],
-        body:[[
-            c.total,
-            c.extra25,
-            c.finalAmount,
-            c.months,
-            c.monthly.toFixed(2),
-            c.paid,
-            (c.finalAmount-c.paid).toFixed(2)
-        ]]
+    newInstallments.push({
+        date: new Date().toLocaleDateString(),
+        amount
     });
 
-    doc.autoTable({
-        startY: doc.lastAutoTable.finalY + 10,
-        head:[['Date','Amount']],
-        body: c.installments.map(i => [i.date, i.amount])
+    await updateDoc(doc(db, "clients", client.id), {
+        paid: newPaid,
+        installments: newInstallments
     });
 
-    doc.save(c.name+"_ASAN_QIST.pdf");
+    loadClients();
 }
 
-function displayClients(){
 
-    let tbody = document.querySelector("#clientTable tbody");
-    tbody.innerHTML="";
+// 📊 DISPLAY (Vertical)
+window.displayClients = function(){
+
+    let container = document.getElementById("clientTable");
+    container.innerHTML = "";
 
     clients.forEach((c,index)=>{
 
-        tbody.innerHTML += `
-        <tr>
-        <td>${c.name}</td>
-        <td>${c.phone}</td>
-        <td>${c.total}</td>
-        <td>${c.extra25}</td>
-        <td>${c.finalAmount}</td>
-        <td>${c.months}</td>
-        <td>${c.monthly.toFixed(2)}</td>
-        <td>${c.paid}</td>
-        <td>${(c.finalAmount-c.paid).toFixed(2)}</td>
-        <td><button class="payBtn" onclick="addPayment(${index})">Pay</button></td>
-        <td><button class="pdfBtn" onclick="generatePDF(${index})">PDF</button></td>
-        <td><button class="deleteBtn" onclick="deleteClient(${index})">Delete</button></td>
-        </tr>
+        container.innerHTML += `
+        <div style="background:white;border:1px solid #ccc;padding:20px;margin-bottom:20px;border-radius:8px;">
+            <h3 style="text-align:center;background:#333;color:white;padding:8px;">
+                CLIENT INVOICE - ${c.name}
+            </h3>
+
+            <p><b>Name:</b> ${c.name}</p>
+            <p><b>CNIC:</b> ${c.cnic}</p>
+            <p><b>Phone:</b> ${c.phone}</p>
+            <p><b>Guarantor:</b> ${c.guarantor}</p>
+            <p><b>Address:</b> ${c.address}</p>
+            <hr>
+            <p><b>Original:</b> ${c.total}</p>
+            <p><b>25%:</b> ${c.extra25}</p>
+            <p><b>Final:</b> ${c.finalAmount}</p>
+            <p><b>Months:</b> ${c.months}</p>
+            <p><b>Monthly:</b> ${c.monthly}</p>
+            <p><b>Paid:</b> ${c.paid || 0}</p>
+            <p><b>Remaining:</b> ${(c.finalAmount - (c.paid || 0)).toFixed(2)}</p>
+
+            <button onclick="addPayment(${index})">Pay</button>
+            <button onclick="deleteClient(${index})">Delete</button>
+        </div>
         `;
     });
 }
