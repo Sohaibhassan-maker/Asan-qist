@@ -72,7 +72,7 @@
     <!-- Payment Details -->
     <input type="number" id="total" placeholder="Product Price">
     <input type="number" id="percent" placeholder="Profit %">
-    <input type="number" id="months" placeholder="Number of Installments">
+    <input type="number" id="months" placeholder="Number of Installments"><br>
 
     <button class="addBtn" onclick="addClient()">Add Client</button>
 
@@ -113,8 +113,21 @@ async function loadClients(){
 }
 loadClients();
 
-// Add client
+// Function to ask for access code
+function askCode(){
+    let code = prompt("Enter access code to proceed:");
+    if(code === "AQali"){
+        return true;
+    } else {
+        alert("Access Denied! Incorrect Code.");
+        return false;
+    }
+}
+
+// Add client (restricted)
 window.addClient = async function(){
+    if(!askCode()) return;
+
     let name = document.getElementById("name").value.trim();
     let cnic = document.getElementById("cnic").value.trim();
     let phone = document.getElementById("phone").value.trim();
@@ -146,14 +159,17 @@ window.addClient = async function(){
     loadClients();
 }
 
-// Delete client
+// Delete client (restricted)
 window.deleteClient = async function(index){
+    if(!askCode()) return;
     await deleteDoc(doc(db,"clients",clients[index].id));
     loadClients();
 }
 
-// Add payment
+// Add payment (restricted)
 window.addPayment = async function(index){
+    if(!askCode()) return;
+
     let amount = parseFloat(prompt("Enter payment amount:"));
     if(isNaN(amount) || amount<=0) return;
 
@@ -211,23 +227,20 @@ window.displayClients = function(){
     });
 }
 
-// Generate PDF with watermark
+// Generate PDF (open for everyone)
 window.generatePDF = function(index){
     const { jsPDF } = window.jspdf;
     let doc = new jsPDF();
     let c = clients[index];
     let serial = index + 1;
 
-    // === Add watermark ===
     doc.setFontSize(40);
-    doc.setTextColor(150,150,150); // light gray
-    doc.text('ASAAN QIST', 60, 90, {angle:0, align:'left'});
-    doc.setTextColor(0,0,0); // reset color
+    doc.setTextColor(150,150,150);
+    doc.text('ASAAN QIST', 60, 90);
+    doc.setTextColor(0,0,0);
     doc.setFontSize(16);
 
-    // Header info
     doc.text(`CLIENT INVOICE #${serial} - ${c.name}`, 20, 20);
-
     doc.setFontSize(12);
     doc.text(`Client CNIC: ${c.cnic}`, 20, 30);
     doc.text(`Client Phone: ${c.phone}`, 20, 37);
@@ -240,7 +253,6 @@ window.generatePDF = function(index){
     doc.text(`Total Paid: ${c.paid || 0}`, 20, 86);
     doc.text(`Remaining: ${(c.finalAmount - (c.paid || 0)).toFixed(2)}`, 20, 93);
 
-    // Installments Table
     let installmentRows = [];
     if(c.installments && c.installments.length > 0){
         c.installments.forEach((inst,i)=>{
@@ -256,7 +268,6 @@ window.generatePDF = function(index){
         body: installmentRows
     });
 
-    // Open PDF in new tab
     let pdfBlob = doc.output('bloburl');
     window.open(pdfBlob);
 }
