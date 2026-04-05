@@ -183,6 +183,8 @@ window.displayClients = function(){
 
             <div class="invoiceRow"><b>CNIC:</b> ${c.cnic}</div>
             <div class="invoiceRow"><b>Phone:</b> ${c.phone}</div>
+            <div class="invoiceRow"><b>Guarantor:</b> ${c.guarantor}</div>
+            <div class="invoiceRow"><b>Address:</b> ${c.address}</div>
             <div class="invoiceRow"><b>Final Amount:</b> ${c.finalAmount}</div>
             <div class="invoiceRow"><b>Installments:</b> ${c.months} (Amount per installment: ${c.monthly.toFixed(2)})</div>
             <div class="invoiceRow"><b>Total Paid:</b> ${c.paid || 0}</div>
@@ -198,23 +200,32 @@ window.displayClients = function(){
     });
 }
 
-// Generate PDF (open in new tab)
+// Generate PDF with watermark (open in new tab)
 window.generatePDF = function(index){
     const { jsPDF } = window.jspdf;
     let doc = new jsPDF();
     let c = clients[index];
     let serial = index + 1;
 
+    // === Add watermark ===
+    doc.setFontSize(40);
+    doc.setTextColor(150,150,150); // light gray
+    doc.text('ASAAN QIST', 60, 90, {angle:0, align:'left'});
+    doc.setTextColor(0,0,0); // reset color
     doc.setFontSize(16);
+
+    // Header info
     doc.text(`CLIENT INVOICE #${serial} - ${c.name}`, 20, 20);
 
     doc.setFontSize(12);
     doc.text(`CNIC: ${c.cnic}`, 20, 30);
     doc.text(`Phone: ${c.phone}`, 20, 37);
-    doc.text(`Final Amount: ${c.finalAmount}`, 20, 44);
-    doc.text(`Installments: ${c.months} (Per Installment: ${c.monthly.toFixed(2)})`, 20, 51);
-    doc.text(`Total Paid: ${c.paid || 0}`, 20, 58);
-    doc.text(`Remaining: ${(c.finalAmount - (c.paid || 0)).toFixed(2)}`, 20, 65);
+    doc.text(`Guarantor: ${c.guarantor}`, 20, 44);
+    doc.text(`Address: ${c.address}`, 20, 51);
+    doc.text(`Final Amount: ${c.finalAmount}`, 20, 58);
+    doc.text(`Installments: ${c.months} (Per Installment: ${c.monthly.toFixed(2)})`, 20, 65);
+    doc.text(`Total Paid: ${c.paid || 0}`, 20, 72);
+    doc.text(`Remaining: ${(c.finalAmount - (c.paid || 0)).toFixed(2)}`, 20, 79);
 
     // Installments Table
     let installmentRows = [];
@@ -227,7 +238,7 @@ window.generatePDF = function(index){
     }
 
     doc.autoTable({
-        startY: 75,
+        startY: 90,
         head: [['#', 'Payment Date', 'Amount']],
         body: installmentRows
     });
