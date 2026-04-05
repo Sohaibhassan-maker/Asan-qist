@@ -58,12 +58,18 @@
 
     <h3>Add Client</h3>
 
+    <!-- Client Details -->
     <input type="text" id="name" placeholder="Client Name">
-    <input type="text" id="cnic" placeholder="CNIC">
-    <input type="text" id="phone" placeholder="Phone Number">
-    <input type="text" id="guarantor" placeholder="Guarantor Name">
-    <input type="text" id="address" placeholder="Address"><br>
+    <input type="text" id="cnic" placeholder="Client CNIC">
+    <input type="text" id="phone" placeholder="Client Phone Number">
+    <input type="text" id="address" placeholder="Client Address"><br>
 
+    <!-- Guarantor Details -->
+    <input type="text" id="guarantorName" placeholder="Guarantor Name">
+    <input type="text" id="guarantorCNIC" placeholder="Guarantor CNIC">
+    <input type="text" id="guarantorAddress" placeholder="Guarantor Address"><br>
+
+    <!-- Payment Details -->
     <input type="number" id="total" placeholder="Product Price">
     <input type="number" id="percent" placeholder="Profit %">
     <input type="number" id="months" placeholder="Number of Installments">
@@ -112,13 +118,15 @@ window.addClient = async function(){
     let name = document.getElementById("name").value.trim();
     let cnic = document.getElementById("cnic").value.trim();
     let phone = document.getElementById("phone").value.trim();
-    let guarantor = document.getElementById("guarantor").value.trim();
     let address = document.getElementById("address").value.trim();
+    let guarantorName = document.getElementById("guarantorName").value.trim();
+    let guarantorCNIC = document.getElementById("guarantorCNIC").value.trim();
+    let guarantorAddress = document.getElementById("guarantorAddress").value.trim();
     let total = parseFloat(document.getElementById("total").value);
     let percent = parseFloat(document.getElementById("percent").value);
     let months = parseInt(document.getElementById("months").value);
 
-    if(!name || !cnic || !phone || !guarantor || !address || isNaN(total) || isNaN(percent) || isNaN(months)){
+    if(!name || !cnic || !phone || !address || !guarantorName || !guarantorCNIC || !guarantorAddress || isNaN(total) || isNaN(percent) || isNaN(months)){
         alert("Fill all fields correctly");
         return;
     }
@@ -128,7 +136,8 @@ window.addClient = async function(){
     let monthly = finalAmount / months;
 
     await addDoc(collection(db,"clients"),{
-        name, cnic, phone, guarantor, address,
+        name, cnic, phone, address,
+        guarantorName, guarantorCNIC, guarantorAddress,
         total, profitPercent: percent, profitAmount, finalAmount, months, monthly,
         paid:0,
         installments:[]
@@ -181,10 +190,12 @@ window.displayClients = function(){
                 CLIENT INVOICE #${serial} - ${c.name}
             </div>
 
-            <div class="invoiceRow"><b>CNIC:</b> ${c.cnic}</div>
-            <div class="invoiceRow"><b>Phone:</b> ${c.phone}</div>
-            <div class="invoiceRow"><b>Guarantor:</b> ${c.guarantor}</div>
-            <div class="invoiceRow"><b>Address:</b> ${c.address}</div>
+            <div class="invoiceRow"><b>Client CNIC:</b> ${c.cnic}</div>
+            <div class="invoiceRow"><b>Client Phone:</b> ${c.phone}</div>
+            <div class="invoiceRow"><b>Client Address:</b> ${c.address}</div>
+            <div class="invoiceRow"><b>Guarantor Name:</b> ${c.guarantorName}</div>
+            <div class="invoiceRow"><b>Guarantor CNIC:</b> ${c.guarantorCNIC}</div>
+            <div class="invoiceRow"><b>Guarantor Address:</b> ${c.guarantorAddress}</div>
             <div class="invoiceRow"><b>Final Amount:</b> ${c.finalAmount}</div>
             <div class="invoiceRow"><b>Installments:</b> ${c.months} (Amount per installment: ${c.monthly.toFixed(2)})</div>
             <div class="invoiceRow"><b>Total Paid:</b> ${c.paid || 0}</div>
@@ -200,7 +211,7 @@ window.displayClients = function(){
     });
 }
 
-// Generate PDF with watermark (open in new tab)
+// Generate PDF with watermark
 window.generatePDF = function(index){
     const { jsPDF } = window.jspdf;
     let doc = new jsPDF();
@@ -218,14 +229,16 @@ window.generatePDF = function(index){
     doc.text(`CLIENT INVOICE #${serial} - ${c.name}`, 20, 20);
 
     doc.setFontSize(12);
-    doc.text(`CNIC: ${c.cnic}`, 20, 30);
-    doc.text(`Phone: ${c.phone}`, 20, 37);
-    doc.text(`Guarantor: ${c.guarantor}`, 20, 44);
-    doc.text(`Address: ${c.address}`, 20, 51);
-    doc.text(`Final Amount: ${c.finalAmount}`, 20, 58);
-    doc.text(`Installments: ${c.months} (Per Installment: ${c.monthly.toFixed(2)})`, 20, 65);
-    doc.text(`Total Paid: ${c.paid || 0}`, 20, 72);
-    doc.text(`Remaining: ${(c.finalAmount - (c.paid || 0)).toFixed(2)}`, 20, 79);
+    doc.text(`Client CNIC: ${c.cnic}`, 20, 30);
+    doc.text(`Client Phone: ${c.phone}`, 20, 37);
+    doc.text(`Client Address: ${c.address}`, 20, 44);
+    doc.text(`Guarantor Name: ${c.guarantorName}`, 20, 51);
+    doc.text(`Guarantor CNIC: ${c.guarantorCNIC}`, 20, 58);
+    doc.text(`Guarantor Address: ${c.guarantorAddress}`, 20, 65);
+    doc.text(`Final Amount: ${c.finalAmount}`, 20, 72);
+    doc.text(`Installments: ${c.months} (Per Installment: ${c.monthly.toFixed(2)})`, 20, 79);
+    doc.text(`Total Paid: ${c.paid || 0}`, 20, 86);
+    doc.text(`Remaining: ${(c.finalAmount - (c.paid || 0)).toFixed(2)}`, 20, 93);
 
     // Installments Table
     let installmentRows = [];
@@ -238,7 +251,7 @@ window.generatePDF = function(index){
     }
 
     doc.autoTable({
-        startY: 90,
+        startY: 105,
         head: [['#', 'Payment Date', 'Amount']],
         body: installmentRows
     });
